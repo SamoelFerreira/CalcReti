@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcRetífica — Mandrilhamento &amp; Ajuste Radial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <circle cx="12" cy="12" r="4"/>
+            <line x1="12" y1="2" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+          </svg>
+        </div>
+        <div>
+          <span class="brand-title">CalcRetífica</span>
+          <span class="brand-sub">Medida na Ferramenta de Corte (Eixo da Mandrilhadora)</span>
+        </div>
+      </div>
+
+      <div class="formula-pill" title="Fórmula de regulagem da pastilha">
+        <span>Cálculo:</span>
+        <code>(Ø Passe - Ø Eixo) ÷ 2</code>
+      </div>
+    </header>
+
+    <main class="main-grid">
+      <!-- COLUNA ESQUERDA: PARÂMETROS -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Parâmetros da Usinagem</h2>
+          <button type="button" id="btnReset" class="btn-ghost" title="Limpar medidas">Limpar</button>
+        </div>
+
+        <form id="calcForm" novalidate>
+          <!-- DIÂMETRO DO EIXO DA MÁQUINA -->
+          <div class="form-group highlight-axis">
+            <div class="label-row">
+              <label for="spindleDiam">Ø Eixo / Cabeçote da Máquina (mm)</label>
+              <span class="hint">Base zero</span>
+            </div>
+            <div class="input-wrapper">
+              <input type="number" id="spindleDiam" step="0.001" min="1" placeholder="65.00" value="65.00" required />
+              <span class="unit">mm</span>
+            </div>
+            <div class="chip-row" aria-label="Atalhos de eixo padrão">
+              <button type="button" class="chip" data-axis="45">45mm</button>
+              <button type="button" class="chip" data-axis="55">55mm</button>
+              <button type="button" class="chip active" data-axis="65">65mm (Padrão)</button>
+              <button type="button" class="chip" data-axis="80">80mm</button>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <!-- MEDIDA ATUAL -->
+          <div class="form-group">
+            <div class="label-row">
+              <label for="currentDiam">Medida Atual do Cilindro — STD (mm)</label>
+              <span class="hint">Diâmetro medido</span>
+            </div>
+            <div class="input-wrapper">
+              <input type="number" id="currentDiam" step="0.001" min="1" placeholder="Ex: 67.10" value="67.10" required />
+              <span class="unit">mm</span>
+            </div>
+          </div>
+
+          <!-- MEDIDA FINAL -->
+          <div class="form-group">
+            <div class="label-row">
+              <label for="targetDiam">Medida Final Nominal (mm)</label>
+              <span class="hint">Pistão / Camisa</span>
+            </div>
+            <div class="input-wrapper">
+              <input type="number" id="targetDiam" step="0.001" min="1" placeholder="Ex: 67.60" value="67.60" required />
+              <span class="unit">mm</span>
+            </div>
+            <div class="chip-row" aria-label="Sobremedidas rápidas">
+              <button type="button" class="chip" data-add="0.25">+0,25</button>
+              <button type="button" class="chip" data-add="0.50">+0,50</button>
+              <button type="button" class="chip" data-add="0.75">+0,75</button>
+              <button type="button" class="chip" data-add="1.00">+1,00</button>
+            </div>
+          </div>
+
+          <!-- SOBREMETAL DE BRUNIMENTO -->
+          <div class="form-group">
+            <div class="label-row">
+              <label for="honingAllowance">Sobremetal de Brunimento (mm)</label>
+              <span class="hint">Descontado no Ø</span>
+            </div>
+            <div class="input-wrapper">
+              <input type="number" id="honingAllowance" step="0.001" min="0" placeholder="Ex: 0.04" value="0.04" required />
+              <span class="unit">mm</span>
+            </div>
+            <div class="chip-row" aria-label="Atalhos de brunimento">
+              <button type="button" class="chip" data-hone="0.00">0,00 (Direto)</button>
+              <button type="button" class="chip" data-hone="0.03">0,03 mm</button>
+              <button type="button" class="chip active" data-hone="0.04">0,04 mm</button>
+              <button type="button" class="chip" data-hone="0.05">0,05 mm</button>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <!-- CORTE MÁXIMO POR PASSE -->
+          <div class="form-group">
+            <div class="label-row">
+              <label for="maxCut">Corte Máximo da Máquina por Passe</label>
+              <span class="hint">Define nº de passes</span>
+            </div>
+            <div class="split-input">
+              <div class="input-wrapper">
+                <input type="number" id="maxCut" step="0.001" min="0.001" placeholder="Ex: 0.50" value="0.50" required />
+                <span class="unit">mm</span>
+              </div>
+              <select id="cutBasis" aria-label="Base do corte máximo">
+                <option value="diameter" selected>No Diâmetro (Ø)</option>
+                <option value="radius">Na Ferramenta (Raio)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="errorBox" class="error-box" hidden></div>
+
+          <button type="submit" id="btnCalculate" class="btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Calcular Medida na Ferramenta
+          </button>
+        </form>
+      </section>
+
+      <!-- COLUNA DIREITA: RESULTADOS -->
+      <section class="results-col">
+        <!-- DESTAQUE PRINCIPAL -->
+        <div class="card hero-card">
+          <div class="hero-top">
+            <div>
+              <div class="hero-status-row">
+                <span id="passModeBadge" class="mode-badge mode-single">1 PASSE ÚNICO</span>
+                <span class="hero-eyebrow">Colocar na Ferramenta de Corte</span>
+              </div>
+              <div class="hero-value-row">
+                <span id="resFinalToolSet" class="hero-number">1.280</span>
+                <span class="hero-unit">mm</span>
+              </div>
+            </div>
+            <button type="button" id="btnCopyTool" class="btn-copy" title="Copiar medida da ferramenta">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span id="copyLabel">Copiar</span>
+            </button>
+          </div>
+
+          <!-- PASSO A PASSO VISUAL DAS REGULAGENS NA FERRAMENTA -->
+          <div id="toolStepsStrip" class="tool-steps-strip"></div>
+
+          <div id="formulaBreakdown" class="formula-breakdown">
+            (Ø 67.560 - Ø 65.000) = 2.560 ÷ 2 = <strong>1.280 mm</strong> na ferramenta
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-box">
+              <span class="kpi-label">Ø Alvo Mandrilhado</span>
+              <span id="resTargetBore" class="kpi-val">67.560 mm</span>
+            </div>
+            <div class="kpi-box">
+              <span class="kpi-label">Total a Tirar no Ø</span>
+              <span id="resTotalRemoval" class="kpi-val">0.460 mm</span>
+            </div>
+            <div class="kpi-box">
+              <span class="kpi-label">Passes Necessários</span>
+              <span id="resTotalPasses" class="kpi-val accent">1 passe</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABELA DETALHADA DOS PASSES -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Detalhamento por Passe</h2>
+              <p class="card-sub">Medida exata para setar no micrômetro da ferramenta em cada passada</p>
+            </div>
+            <span id="passRuleBadge" class="badge">Limite: 0.500 mm no Ø</span>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Passe</th>
+                  <th>Etapa</th>
+                  <th>Ø Cilindro</th>
+                  <th>Corte no Ø</th>
+                  <th class="th-highlight">Colocar na Ferramenta</th>
+                </tr>
+              </thead>
+              <tbody id="passesBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HISTÓRICO DA SESSÃO -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Histórico de Cálculos</h2>
+            <button type="button" id="btnClearHistory" class="btn-ghost">Limpar</button>
+          </div>
+          <div id="historyList" class="history-list">
+            <p class="empty-msg">Nenhum cálculo salvo ainda.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
